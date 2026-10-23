@@ -92,6 +92,55 @@
   .link-row .prev img { max-width: 100%; max-height: 100%; box-shadow: 0 0 0 1px rgba(0,0,0,.15); background: #fff; }
   .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; margin-right: 4px; }
   .tag.bad { background: #fee2e2; color: #991b1b; } .tag.warn { background: #fef3c7; color: #92400e; }
+
+  /* 單頁連結編輯 */
+  #editDlg { width: min(1280px, calc(100vw - 24px)); height: calc(100vh - 24px); max-height: none; }
+  #editDlg[open] { display: grid; grid-template-rows: auto 1fr auto; }
+  .ed-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .ed-head h2 { font-size: 15px; margin: 0; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed-main { display: grid; grid-template-columns: 1fr 320px; min-height: 0; }
+  #edStage { overflow: auto; background: var(--bg); display: flex; align-items: center; justify-content: center; padding: 16px; min-height: 0; }
+  #edPage { position: relative; flex: none; box-shadow: 0 2px 10px rgba(0,0,0,.2); background: #fff; }
+  #edCanvas { display: block; }
+  #edOverlay { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+  .box { position: absolute; border: 2px dashed #2563eb; background: rgba(37,99,235,.10); cursor: move; }
+  .box.url { border-color: #16a34a; background: rgba(22,163,74,.10); }
+  .box.other { border-color: #64748b; background: rgba(100,116,139,.10); }
+  .box.bad { border-color: #dc2626; background: rgba(220,38,38,.10); }
+  .box.sel { border-style: solid; box-shadow: 0 0 0 2px rgba(255,255,255,.9); }
+  .box-label { position: absolute; left: -2px; bottom: 100%; font-size: 11px; line-height: 1.5; padding: 0 5px; white-space: nowrap;
+    background: #2563eb; color: #fff; border-radius: 3px 3px 0 0; pointer-events: none; max-width: 260px; overflow: hidden; text-overflow: ellipsis; }
+  .box.url .box-label { background: #16a34a; } .box.other .box-label { background: #64748b; } .box.bad .box-label { background: #dc2626; }
+  .h { position: absolute; width: 10px; height: 10px; background: #fff; border: 2px solid #111; border-radius: 2px; }
+  .h[data-h=nw] { left: -6px; top: -6px; cursor: nwse-resize; } .h[data-h=se] { right: -6px; bottom: -6px; cursor: nwse-resize; }
+  .h[data-h=ne] { right: -6px; top: -6px; cursor: nesw-resize; } .h[data-h=sw] { left: -6px; bottom: -6px; cursor: nesw-resize; }
+  #edTemp { position: absolute; border: 2px dashed #111; background: rgba(0,0,0,.06); display: none; pointer-events: none; }
+  #edPanel { border-left: 1px solid var(--border); overflow: auto; padding: 12px 14px; font-size: 13px; }
+  #edPanel h3 { font-size: 13px; margin: 4px 0 8px; color: var(--muted); font-weight: 600; }
+  .ed-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+  .ed-item { text-align: left; display: flex; gap: 6px; align-items: center; padding: 5px 8px; font-size: 12px; }
+  .ed-item.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .ed-item span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ed-field { margin-bottom: 12px; }
+  .ed-field > label { display: block; font-weight: 600; margin-bottom: 4px; }
+  .ed-field select, .ed-field input[type=text] { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--border);
+    border-radius: 6px; background: var(--bg); color: var(--text); }
+  .seg { display: flex; } .seg button { flex: 1; border-radius: 0; } .seg button:first-child { border-radius: 6px 0 0 6px; }
+  .seg button:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; } .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .ed-thumb { margin-top: 6px; height: 120px; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 6px; }
+  .ed-thumb img { max-height: 108px; max-width: 108px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); background: #fff; }
+  .ed-msg { font-size: 12px; margin-top: 4px; color: var(--muted); word-break: break-all; }
+  .ed-msg.bad { color: var(--danger); } .ed-msg.ok { color: #16a34a; }
+  .ed-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+  .ed-row input[type=color] { width: 40px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 6px; background: none; }
+  .ed-empty { color: var(--muted); line-height: 1.7; }
+  .ed-foot { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-top: 1px solid var(--border); }
+  .ed-foot .tip { flex: 1; color: var(--muted); font-size: 12px; }
+  @media (max-width: 760px) {
+    .ed-main { grid-template-columns: 1fr; grid-template-rows: 1fr auto; }
+    #edPanel { border-left: 0; border-top: 1px solid var(--border); max-height: 45vh; }
+    .ed-foot .tip { display: none; }
+  }
   @media (max-width: 600px) { #grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } input[type=text] { width: 130px; } }
 </style>
 </head>
@@ -113,7 +162,7 @@
 </header>
 <div id="status">尚未載入檔案</div>
 <div id="sources"></div>
-<div class="hint">拖曳頁面縮圖可調整順序　·　🔗＝頁面上有內部連結，◎＝被其他頁連結，⚠＝連結目標已刪除或重複　·點選＝單選，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>＋點選＝多選，<kbd>Shift</kbd>＋點選＝範圍選取　·　<kbd>Delete</kbd> 刪除，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd> 複製，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> 復原</div>
+<div class="hint">拖曳頁面縮圖可調整順序　·　<b>雙擊頁面可編輯超連結</b>　·　🔗＝頁面上的連結數，◎＝被其他頁連結，⚠＝連結目標已刪除或重複　·　點選＝單選，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>＋點選＝多選，<kbd>Shift</kbd>＋點選＝範圍選取　·　<kbd>Delete</kbd> 刪除，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd> 複製，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> 復原</div>
 <main id="main">
   <div id="empty">
     <p style="font-size:40px">📥</p>
@@ -133,6 +182,27 @@
   <div class="dlg-foot">
     <button id="linkDlgCancel">返回修改</button>
     <button id="linkDlgOk" class="primary">確認並匯出</button>
+  </div>
+</dialog>
+<dialog id="editDlg">
+  <div class="ed-head">
+    <h2 id="edTitle">編輯連結</h2>
+    <button id="edPrev" title="儲存並編輯上一頁">◀ 上一頁</button>
+    <button id="edNext" title="儲存並編輯下一頁">下一頁 ▶</button>
+  </div>
+  <div class="ed-main">
+    <div id="edStage">
+      <div id="edPage">
+        <canvas id="edCanvas"></canvas>
+        <div id="edOverlay"><div id="edTemp"></div></div>
+      </div>
+    </div>
+    <div id="edPanel"></div>
+  </div>
+  <div class="ed-foot">
+    <span class="tip">在頁面上拖曳畫出連結範圍　·　點選方框可移動，拖曳角落調整大小　·　<kbd>Delete</kbd> 刪除　<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> 復原　方向鍵微調</span>
+    <button id="edCancel">取消</button>
+    <button id="edDone" class="primary">完成</button>
   </div>
 </dialog>
 
@@ -172,11 +242,11 @@ async function addFiles(fileList) {
     try {
       const bytes = new Uint8Array(await f.arrayBuffer());
       const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
-      // 讀取每頁的內部超連結（只保留「第幾個註解 → 指向第幾頁」，匯出時再重新解析）
+      // 讀取每頁的超連結（保留可序列化的資訊，匯出時再重新解析 PDF 物件）
       let links = [];
       try {
         const lib = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
-        links = extractLinks(lib).map(list => list.map(({ annot, target }) => ({ annot, target })));
+        links = extractLinks(lib).map(list => list.map(({ annot, kind, target, url, rect }) => ({ annot, kind, target, url, rect })));
       } catch (e) { console.warn('無法讀取連結', f.name, e); }
       const srcIdx = state.sources.length;
       state.sources.push({ name: f.name, bytes, doc, links, color: COLORS[srcIdx % COLORS.length] });
@@ -225,7 +295,15 @@ function buildNamedDests(doc) {
   return map;
 }
 
-// 回傳每頁的內部連結：[{ annot: Annots 中的索引, target: 目標頁索引(-1=無法解析), rest: 目的地參數, dict }]
+function readRect(annot) {
+  const r = annot.lookup(N('Rect'));
+  if (!(r instanceof PDFArray) || r.size() < 4) return [0, 0, 0, 0];
+  const [a, b, c, d] = [0, 1, 2, 3].map(k => { const v = r.lookup(k); return v instanceof PDFNumber ? v.asNumber() : 0; });
+  return [Math.min(a, c), Math.min(b, d), Math.max(a, c), Math.max(b, d)];
+}
+
+// 回傳每頁所有的連結註解：
+// [{ annot: Annots 中的索引, kind: 'page'|'url'|'other', target: 目標頁索引, rest: 目的地參數, url, rect, dict }]
 function extractLinks(doc) {
   const ctx = doc.context;
   const pages = doc.getPages();
@@ -240,49 +318,89 @@ function extractLinks(doc) {
       try {
         const annot = annots.lookup(j);
         if (!(annot instanceof PDFDict) || textOf(annot.get(N('Subtype'))) !== 'Link') continue;
+        const L = { annot: j, kind: 'other', target: -1, rect: readRect(annot), dict: annot };
+        out.push(L);
         let dest = annot.get(N('Dest'));
-        if (!dest) {
-          const action = annot.lookup(N('A'));
-          if (!(action instanceof PDFDict) || textOf(action.get(N('S'))) !== 'GoTo') continue;
-          dest = action.get(N('D'));
+        const action = annot.lookup(N('A'));
+        if (!dest && action instanceof PDFDict) {
+          const s = textOf(action.get(N('S')));
+          if (s === 'URI') { L.kind = 'url'; L.url = textOf(action.lookup(N('URI'))); continue; }
+          if (s === 'GoTo') dest = action.get(N('D'));
         }
+        if (!dest) continue;
         dest = ctx.lookup(dest);
         if (!(dest instanceof PDFArray)) {
           named = named || buildNamedDests(doc);
           dest = named.get(textOf(dest)) || null;
         }
-        if (!dest) { out.push({ annot: j, target: -1, dict: annot }); continue; }
+        if (!dest) continue;
         const first = dest.get(0);
-        let target = first instanceof PDFRef ? refIndex.get(first.toString())
-                   : first instanceof PDFNumber ? first.asNumber() : undefined;
-        if (target == null || target < 0 || target >= pages.length) target = -1;
-        const rest = [];
-        for (let k = 1; k < dest.size(); k++) rest.push(dest.get(k));
-        out.push({ annot: j, target, rest, dict: annot });
+        const target = first instanceof PDFRef ? refIndex.get(first.toString())
+                     : first instanceof PDFNumber ? first.asNumber() : undefined;
+        if (target == null || target < 0 || target >= pages.length) continue;
+        L.kind = 'page';
+        L.target = target;
+        L.rest = [];
+        for (let k = 1; k < dest.size(); k++) L.rest.push(dest.get(k));
       } catch (e) { console.warn('略過無法解析的連結', e); }
     }
     return out;
   });
 }
 
-// 依目前頁面排列，檢查每個連結的目標：ok=唯一一頁、dup=目標頁有多個複本、missing=目標頁已刪除
-function analyzeLinks() {
-  const pos = new Map();
-  state.pages.forEach((p, i) => {
-    const k = p.src + ':' + p.page;
-    if (!pos.has(k)) pos.set(k, []);
-    pos.get(k).push(i);
+// 每個頁面（含複本）各自的連結清單；未編輯過的頁面沿用來源檔的連結。
+// 連結格式：{ lid, orig: 來源註解索引或 null, rect: PDF 座標 [x1,y1,x2,y2], kind: 'page'|'url'|'other',
+//   target: { src, page, pageId? }（有 pageId 表示指定某個頁面，沒有則表示來源檔的原目標頁）,
+//   url, view: 'keep'|'fit'|'top', border: undefined=保留原樣 | { w, color }, hl: undefined=保留原樣 | 'I'|'N'|'O'|'P' }
+function pageLinks(p) {
+  if (p.links) return p.links;
+  return (state.sources[p.src].links?.[p.page] || []).map(L => ({
+    lid: 'o' + L.annot, orig: L.annot, rect: L.rect, kind: L.kind,
+    target: L.kind === 'page' ? { src: p.src, page: L.target } : null,
+    url: L.url || '', view: 'keep',
+  }));
+}
+
+function origLink(p, L) {
+  return L.orig == null ? null : (state.sources[p.src].links?.[p.page] || []).find(x => x.annot === L.orig);
+}
+
+// 內部連結目前對應到哪些頁：ok=唯一一頁、dup=目標頁有多個複本、missing=目標頁已刪除、unset=尚未設定
+function linkTargetInfo(L) {
+  if (!L.target) return { hits: [], status: 'unset' };
+  const t = L.target;
+  const hits = [];
+  state.pages.forEach((q, i) => {
+    if (t.pageId != null ? q.id === t.pageId : (q.src === t.src && q.page === t.page)) hits.push(i);
   });
+  return { hits, status: hits.length === 1 ? 'ok' : hits.length ? 'dup' : 'missing' };
+}
+
+// 依目前頁面排列，列出所有內部連結與其狀態
+function analyzeLinks() {
   const items = [];
   state.pages.forEach((p, i) => {
-    for (const L of state.sources[p.src].links?.[p.page] || []) {
-      if (L.target < 0) continue;
-      const hits = pos.get(p.src + ':' + L.target) || [];
-      items.push({ key: i + ':' + L.annot, out: i, src: p.src, target: L.target, hits,
-        status: hits.length === 1 ? 'ok' : hits.length ? 'dup' : 'missing' });
+    for (const L of pageLinks(p)) {
+      if (L.kind !== 'page' || !L.target) continue;
+      const { hits, status } = linkTargetInfo(L);
+      items.push({ key: i + ':' + L.lid, out: i, src: L.target.src, target: L.target.page,
+        byId: L.target.pageId != null, hits, status });
     }
   });
   return items;
+}
+
+function normalizeUrl(s) {
+  s = (s || '').trim();
+  if (!s) return null;
+  if (/^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(s)) s = 'mailto:' + s;
+  else if (!/^[a-z][a-z0-9+.-]*:/i.test(s)) s = 'https://' + s;
+  try {
+    const u = new URL(s);
+    if (!['http:', 'https:', 'mailto:', 'tel:'].includes(u.protocol)) return null;
+    if (/^https?:$/.test(u.protocol) && !u.hostname.includes('.') && u.hostname !== 'localhost') return null;
+    return /^[\x20-\x7e]+$/.test(u.href) ? u.href : null;
+  } catch (e) { return null; }
 }
 
 const pageLabel = i => {
@@ -292,6 +410,7 @@ const pageLabel = i => {
 
 // 目標頁被刪除時，猜測替代頁：原本前一頁之後的位置若放的是其他頁，視為替換頁
 function suggestTarget(item) {
+  if (item.byId) return -1;
   for (let t = item.target - 1; t >= 0; t--) {
     const idx = state.pages.findIndex(p => p.src === item.src && p.page === t);
     if (idx < 0) continue;
@@ -314,7 +433,7 @@ function confirmLinks(items) {
     row.className = 'link-row';
     const srcName = escapeHtml(state.sources[it.src].name);
     const why = it.status === 'missing'
-      ? `<span class="tag bad">目標頁已刪除</span>原本指向 ${srcName} p${it.target + 1}，該頁已不在文件中。若已用其他頁替換，請選擇替換後的頁面。`
+      ? `<span class="tag bad">目標頁已刪除</span>原本指向 ${srcName} p${it.target + 1}${it.byId ? '（你設定的頁面）' : ''}，該頁已不在文件中。若已用其他頁替換，請選擇替換後的頁面。`
       : `<span class="tag warn">目標頁有 ${it.hits.length} 個複本</span>原本指向 ${srcName} p${it.target + 1}，請選擇要跳到哪一個。`;
     const def = it.status === 'dup' ? it.hits[0] : suggestTarget(it);
     row.innerHTML = `
@@ -359,27 +478,37 @@ function confirmLinks(items) {
   });
 }
 
-// 以 pdf.js（與寫入用的 pdf-lib 不同的解析器）重新開啟匯出檔，確認每個連結都跳到預期頁面
+// 以 pdf.js（與寫入用的 pdf-lib 不同的解析器）重新開啟匯出檔，
+// 確認每個連結的範圍正確，且內部連結跳到預期頁面、外部連結開啟預期網址
 async function verifyLinks(bytes, expected) {
   const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
   const failures = [];
   let checked = 0;
+  const near = (a, b) => a.every((v, k) => Math.abs(v - b[k]) < 1);
   try {
-    for (const [i, targets] of expected) {
+    for (const [i, wants] of expected) {
       const page = await doc.getPage(i + 1);
       const actual = [];
       for (const a of await page.getAnnotations()) {
-        if (a.subtype !== 'Link' || a.dest == null) continue;
-        try {
-          const dest = typeof a.dest === 'string' ? await doc.getDestination(a.dest) : a.dest;
-          const ref = dest?.[0];
-          actual.push(typeof ref === 'number' ? ref : await doc.getPageIndex(ref));
-        } catch (e) { actual.push(-1); }
+        if (a.subtype !== 'Link') continue;
+        const rect = a.rect;
+        if (a.dest != null) {
+          try {
+            const dest = typeof a.dest === 'string' ? await doc.getDestination(a.dest) : a.dest;
+            const ref = dest?.[0];
+            actual.push({ kind: 'page', tgt: typeof ref === 'number' ? ref : await doc.getPageIndex(ref), rect });
+          } catch (e) { actual.push({ kind: 'page', tgt: -1, rect }); }
+        } else if (a.unsafeUrl || a.url) {
+          actual.push({ kind: 'url', url: a.unsafeUrl || a.url, rect });
+        }
       }
-      for (const t of targets) {
-        const k = actual.indexOf(t);
+      for (const w of wants) {
+        const k = actual.findIndex(a => a.kind === w.kind && near(a.rect, w.rect)
+          && (w.kind === 'page' ? a.tgt === w.tgt : a.url === w.url));
         if (k >= 0) { actual.splice(k, 1); checked++; }
-        else failures.push(`第 ${i + 1} 頁的連結應跳到第 ${t + 1} 頁，但沒有正確寫入`);
+        else failures.push(w.kind === 'page'
+          ? `第 ${i + 1} 頁的連結應跳到第 ${w.tgt + 1} 頁，但沒有正確寫入`
+          : `第 ${i + 1} 頁的連結應開啟 ${w.url}，但沒有正確寫入`);
       }
     }
   } finally {
@@ -436,10 +565,14 @@ function render() {
   // 連結狀態：每頁上的連結數與問題、每頁被幾個連結指向
   const links = analyzeLinks();
   const onPage = new Map(), targeted = new Map();
+  let nLinks = 0;
+  pages.forEach((p, i) => {
+    const n = pageLinks(p).length;
+    nLinks += n;
+    if (n) onPage.set(i, { n, missing: 0, dup: 0 });
+  });
   for (const it of links) {
-    const e = onPage.get(it.out) || { n: 0, missing: 0, dup: 0 };
-    e.n++; if (it.status !== 'ok') e[it.status]++;
-    onPage.set(it.out, e);
+    if (it.status !== 'ok') onPage.get(it.out)[it.status]++;
     for (const h of it.hits) targeted.set(h, (targeted.get(h) || 0) + 1);
   }
   const nProblems = links.filter(x => x.status !== 'ok').length;
@@ -456,6 +589,7 @@ function render() {
         <span class="num">${i + 1}</span>
         <span class="from" title="${escapeHtml(s.name)} 第 ${p.page + 1} 頁">${escapeHtml(s.name)} · p${p.page + 1}</span></div>
       <div class="tools">
+        <button data-act="links" title="編輯此頁的超連結（或雙擊頁面）">🔗</button>
         <button data-act="rot" title="右轉 90°">↻</button>
         <button data-act="dup" title="複製此頁">⧉</button>
         <button data-act="del" title="刪除此頁">✕</button>
@@ -464,7 +598,7 @@ function render() {
     if (lk || tg) {
       const b = document.createElement('div');
       b.className = 'badges';
-      if (lk) b.innerHTML += `<span class="badge" title="此頁有 ${lk.n} 個內部連結">🔗 ${lk.n}</span>`;
+      if (lk) b.innerHTML += `<span class="badge" title="此頁有 ${lk.n} 個連結，雙擊頁面可編輯">🔗 ${lk.n}</span>`;
       if (lk?.missing) b.innerHTML += `<span class="badge bad" title="有 ${lk.missing} 個連結的目標頁已被刪除">⚠ ${lk.missing} 個目標已刪除</span>`;
       if (lk?.dup) b.innerHTML += `<span class="badge warn" title="有 ${lk.dup} 個連結的目標頁有多個複本">⚠ ${lk.dup} 個目標重複</span>`;
       if (tg) b.innerHTML += `<span class="badge" title="有 ${tg} 個連結指向此頁">◎ ${tg}</span>`;
@@ -486,10 +620,19 @@ function render() {
     return chip;
   }));
 
+  state.summary = { nFiles: usedSrc.size, nLinks, nProblems };
+  renderChrome();
+}
+
+// 狀態列、按鈕與選取外觀（單純選取頁面時只更新這部分，不重建縮圖，雙擊才能正常觸發）
+function renderChrome() {
+  const { pages, selected } = state;
+  const { nFiles = 0, nLinks = 0, nProblems = 0 } = state.summary || {};
+  grid.querySelectorAll('.card').forEach(c => c.classList.toggle('selected', selected.has(Number(c.dataset.id))));
   const nSel = selected.size;
   $('status').textContent = pages.length
-    ? `共 ${pages.length} 頁，來自 ${usedSrc.size} 個檔案` + (nSel ? `　·　已選取 ${nSel} 頁` : '')
-      + (links.length ? `　·　${links.length} 個內部連結` : '')
+    ? `共 ${pages.length} 頁，來自 ${nFiles} 個檔案` + (nSel ? `　·　已選取 ${nSel} 頁` : '')
+      + (nLinks ? `　·　${nLinks} 個超連結` : '')
     : '尚未載入檔案';
   if (nProblems) {
     const w = document.createElement('span');
@@ -560,6 +703,359 @@ function selectAll() {
   render();
 }
 
+// ---------- 單頁連結編輯 ----------
+const ed = { idx: -1, draft: [], before: '', sel: null, vp: null, hist: [], drag: null, task: null, lastKind: 'page' };
+const HL = { I: '反轉（Acrobat 預設）', N: '無', O: '外框', P: '內凹' };
+
+const edLink = lid => ed.draft.find(L => L.lid === lid);
+const edPushHist = () => { ed.hist.push(JSON.stringify({ draft: ed.draft, sel: ed.sel })); if (ed.hist.length > 200) ed.hist.shift(); };
+function edUndo() {
+  if (!ed.hist.length) return;
+  ({ draft: ed.draft, sel: ed.sel } = JSON.parse(ed.hist.pop()));
+  edRefresh();
+}
+const isIncomplete = L => (L.kind === 'page' && !L.target) || (L.kind === 'url' && !normalizeUrl(L.url));
+
+function linkSummary(L) {
+  if (L.kind === 'url') {
+    const u = normalizeUrl(L.url);
+    if (!u) return L.url ? '⚠ 網址格式不正確' : '⚠ 尚未輸入網址';
+    return '🌐 ' + (u.startsWith('mailto:') ? u.slice(7) : u.replace(/^https?:\/\//, '').replace(/\/$/, ''));
+  }
+  if (L.kind === 'other') return '⚙ 其他動作';
+  const { hits, status } = linkTargetInfo(L);
+  if (status === 'unset') return '⚠ 尚未選擇目標頁';
+  if (status === 'missing') return '⚠ 目標頁已刪除';
+  if (status === 'dup') return `→ 第 ${hits.map(h => h + 1).join('／')} 頁（目標有複本）`;
+  return `→ 第 ${hits[0] + 1} 頁`;
+}
+
+async function openEditor(idx) {
+  const p = state.pages[idx];
+  if (!p) return;
+  ed.idx = idx;
+  ed.draft = structuredClone(pageLinks(p));
+  ed.before = JSON.stringify(ed.draft);
+  ed.sel = null;
+  ed.hist = [];
+  const dlg = $('editDlg');
+  if (!dlg.open) dlg.showModal();
+  $('edTitle').textContent = `🔗 編輯連結 — ${pageLabel(idx)}`;
+  $('edPrev').disabled = idx === 0;
+  $('edNext').disabled = idx === state.pages.length - 1;
+  $('edOverlay').querySelectorAll('.box').forEach(b => b.remove());
+  renderPanel();
+  await renderEditorPage();
+  edRefresh();
+}
+
+async function renderEditorPage() {
+  const p = state.pages[ed.idx];
+  const pg = await state.sources[p.src].doc.getPage(p.page + 1);
+  const rotation = (pg.rotate + p.rot) % 360;
+  const stage = $('edStage');
+  const base = pg.getViewport({ scale: 1, rotation });
+  const scale = Math.max(0.2, Math.min((stage.clientWidth - 32) / base.width, (stage.clientHeight - 32) / base.height));
+  const vp = pg.getViewport({ scale, rotation });
+  const dpr = window.devicePixelRatio || 1;
+  const canvas = $('edCanvas');
+  ed.task?.cancel();
+  canvas.width = Math.round(vp.width * dpr);
+  canvas.height = Math.round(vp.height * dpr);
+  canvas.style.width = $('edPage').style.width = vp.width + 'px';
+  canvas.style.height = $('edPage').style.height = vp.height + 'px';
+  ed.vp = vp;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, vp.width, vp.height);
+  ed.task = pg.render({ canvasContext: ctx, viewport: vp });
+  try { await ed.task.promise; } catch (e) { if (e?.name !== 'RenderingCancelledException') console.error(e); }
+}
+
+// PDF 座標 ↔ 畫面座標（pdf.js 的 viewport 已處理頁面旋轉與頁面框位移）
+function toScreen(r) {
+  const [a, b, c, d] = ed.vp.convertToViewportRectangle(r);
+  return { x: Math.min(a, c), y: Math.min(b, d), w: Math.abs(c - a), h: Math.abs(d - b) };
+}
+function toPdf({ x, y, w, h }) {
+  const [a, b] = ed.vp.convertToPdfPoint(x, y), [c, d] = ed.vp.convertToPdfPoint(x + w, y + h);
+  return [Math.min(a, c), Math.min(b, d), Math.max(a, c), Math.max(b, d)].map(v => Math.round(v * 100) / 100);
+}
+
+function drawBoxes() {
+  const ov = $('edOverlay');
+  ov.querySelectorAll('.box').forEach(b => b.remove());
+  if (!ed.vp) return;
+  // 面積大的先畫，小的疊在上面才點得到
+  const items = ed.draft.map(L => ({ L, r: toScreen(L.rect) })).sort((a, b) => b.r.w * b.r.h - a.r.w * a.r.h);
+  for (const { L, r } of items) {
+    const st = L.kind === 'page' ? linkTargetInfo(L).status : '';
+    const box = document.createElement('div');
+    box.className = `box ${L.kind}` + (isIncomplete(L) || st === 'missing' || st === 'dup' ? ' bad' : '') + (L.lid === ed.sel ? ' sel' : '');
+    box.dataset.lid = L.lid;
+    Object.assign(box.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    box.innerHTML = `<span class="box-label">${escapeHtml(linkSummary(L))}</span>`
+      + (L.lid === ed.sel ? ['nw', 'ne', 'sw', 'se'].map(h => `<div class="h" data-h="${h}"></div>`).join('') : '');
+    ov.appendChild(box);
+  }
+}
+
+function renderPanel() {
+  const panel = $('edPanel');
+  const p = state.pages[ed.idx];
+  const list = ed.draft.map((L, k) => `
+    <button class="ed-item${L.lid === ed.sel ? ' sel' : ''}" data-lid="${L.lid}">
+      <span>${k + 1}.</span><span>${escapeHtml(linkSummary(L))}</span></button>`).join('');
+  let html = `<h3>此頁的連結（${ed.draft.length}）</h3><div class="ed-list">${list || '<div class="ed-empty">尚無連結</div>'}</div>`;
+  const L = edLink(ed.sel);
+  if (!L) {
+    html += `<div class="ed-empty">👉 在左邊頁面上<b>按住滑鼠拖曳</b>，畫出要點選的範圍，就會建立一個新連結。<br>
+      預設為<b>不可見的方框</b>（同 Acrobat 的「不可見的矩形」），頁面外觀不會改變。<br>點選已有的方框可修改設定。</div>`;
+    panel.innerHTML = html;
+    return;
+  }
+  const o = origLink(p, L);
+  html += `<h3>連結設定</h3>`;
+  if (L.kind === 'other') {
+    html += `<div class="ed-field ed-empty">此連結使用其他動作（例如開啟其他檔案或執行指令），只能調整範圍或刪除。</div>`;
+  } else {
+    html += `<div class="ed-field"><label>連結類型</label><div class="seg">
+        <button data-kind="page" class="${L.kind === 'page' ? 'on' : ''}">📄 內部頁面</button>
+        <button data-kind="url" class="${L.kind === 'url' ? 'on' : ''}">🌐 外部網址</button></div></div>`;
+    if (L.kind === 'page') {
+      const info = linkTargetInfo(L);
+      const cur = info.status === 'ok' ? info.hits[0] : -1;
+      const opts = state.pages.map((_, i) => `<option value="${i}"${i === cur ? ' selected' : ''}>${escapeHtml(pageLabel(i))}${i === ed.idx ? '（本頁）' : ''}</option>`).join('');
+      const note = info.status === 'missing' ? '<div class="ed-msg bad">原本的目標頁已被刪除，請重新選擇。</div>'
+        : info.status === 'dup' ? `<div class="ed-msg bad">目標頁有 ${info.hits.length} 個複本（第 ${info.hits.map(h => h + 1).join('、')} 頁），請選擇要跳到哪一個。</div>` : '';
+      const keepOk = o?.kind === 'page' && !L.target?.pageId;
+      html += `<div class="ed-field"><label>跳到哪一頁</label>
+          <select id="edTarget"><option value=""${cur < 0 ? ' selected' : ''}>請選擇頁面…</option>${opts}</select>${note}
+          <div class="ed-thumb"><img id="edTargetImg" alt=""></div></div>
+        <div class="ed-field"><label>跳過去後的顯示方式</label><select id="edView">
+          ${keepOk ? `<option value="keep">保留原本的設定</option>` : ''}
+          <option value="fit">整頁顯示</option>
+          <option value="top">跳到頁面頂端（維持目前縮放）</option></select></div>`;
+    } else {
+      const u = normalizeUrl(L.url);
+      html += `<div class="ed-field"><label>網址</label>
+          <input type="text" id="edUrl" placeholder="https://example.com 或 name@example.com" value="${escapeHtml(L.url || '')}">
+          <div class="ed-msg ${L.url ? (u ? 'ok' : 'bad') : ''}" id="edUrlMsg">${L.url ? (u ? '✓ ' + escapeHtml(u) : '網址格式不正確') : '支援 https、http、mailto（寄信）、tel（電話）'}</div>
+          <div class="ed-row"><button id="edTestUrl"${u ? '' : ' disabled'}>↗ 測試開啟</button></div></div>`;
+    }
+  }
+  const bMode = L.border === undefined ? 'keep' : L.border.w > 0 ? 'show' : 'none';
+  html += `<div class="ed-field"><label>外觀</label><select id="edBorder">
+      ${L.border === undefined ? '<option value="keep">保留原本的外觀</option>' : ''}
+      <option value="none">不可見的方框（建議）</option><option value="show">顯示框線</option></select>
+      ${bMode === 'show' ? `<div class="ed-row"><input type="color" id="edColor" value="${L.border.color || '#2563eb'}">
+        <select id="edWidth">${[1, 2, 3].map(w => `<option value="${w}"${L.border.w === w ? ' selected' : ''}>${w} pt</option>`).join('')}</select></div>` : ''}</div>
+    <div class="ed-field"><label>點選時的效果</label><select id="edHl">
+      ${L.hl === undefined ? '<option value="">保留原本的設定</option>' : ''}
+      ${Object.entries(HL).map(([k, v]) => `<option value="${k}"${L.hl === k ? ' selected' : ''}>${v}</option>`).join('')}</select></div>
+    <button id="edDelete" class="danger">🗑 刪除此連結</button>`;
+  panel.innerHTML = html;
+
+  if ($('edView')) $('edView').value = L.view === 'keep' && !$('edView').querySelector('[value=keep]') ? 'fit' : (L.view || 'fit');
+  $('edBorder').value = bMode;
+  if ($('edTargetImg')) {
+    const info = linkTargetInfo(L);
+    if (info.status === 'ok') {
+      const t = state.pages[info.hits[0]];
+      $('edTargetImg').style.transform = `rotate(${t.rot}deg)`;
+      getThumb(t.src, t.page).then(url => { if ($('edTargetImg') && url) $('edTargetImg').src = url; });
+    }
+  }
+}
+
+function edRefresh() { drawBoxes(); renderPanel(); }
+
+// 面板上的操作
+$('edPanel').addEventListener('click', e => {
+  const item = e.target.closest('.ed-item');
+  if (item) { ed.sel = item.dataset.lid; return edRefresh(); }
+  const L = edLink(ed.sel);
+  if (!L) return;
+  const kindBtn = e.target.closest('[data-kind]');
+  if (kindBtn && kindBtn.dataset.kind !== L.kind) {
+    edPushHist();
+    L.kind = ed.lastKind = kindBtn.dataset.kind;
+    edRefresh();
+    if (L.kind === 'url') $('edUrl')?.focus();
+  } else if (e.target.id === 'edDelete') {
+    edDeleteSelected();
+  } else if (e.target.id === 'edTestUrl') {
+    const u = normalizeUrl(L.url);
+    if (u) window.open(u, '_blank', 'noopener');
+  }
+});
+$('edPanel').addEventListener('change', e => {
+  const L = edLink(ed.sel);
+  if (!L) return;
+  const id = e.target.id, v = e.target.value;
+  edPushHist();
+  if (id === 'edTarget') {
+    if (v === '') { L.target = null; }
+    else {
+      const t = state.pages[Number(v)];
+      L.target = { src: t.src, page: t.page, pageId: t.id };
+      if (L.view === 'keep') L.view = 'fit';
+    }
+  } else if (id === 'edView') L.view = v;
+  else if (id === 'edUrl') L.url = normalizeUrl(v) || v.trim();
+  else if (id === 'edBorder') L.border = v === 'keep' ? undefined : v === 'none' ? { w: 0 } : { w: 1, color: '#2563eb' };
+  else if (id === 'edColor') L.border = { ...L.border, color: v };
+  else if (id === 'edWidth') L.border = { ...L.border, w: Number(v) };
+  else if (id === 'edHl') L.hl = v || undefined;
+  else { ed.hist.pop(); return; }
+  edRefresh();
+});
+// 網址輸入時即時檢查格式（不重繪面板，避免游標跳走）
+$('edPanel').addEventListener('input', e => {
+  if (e.target.id !== 'edUrl') return;
+  const u = normalizeUrl(e.target.value), msg = $('edUrlMsg');
+  msg.className = 'ed-msg ' + (e.target.value.trim() ? (u ? 'ok' : 'bad') : '');
+  msg.textContent = e.target.value.trim() ? (u ? '✓ ' + u : '網址格式不正確') : '支援 https、http、mailto（寄信）、tel（電話）';
+  $('edTestUrl').disabled = !u;
+});
+$('edPanel').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'edUrl') e.target.blur(); });
+
+function edDeleteSelected() {
+  if (!edLink(ed.sel)) return;
+  edPushHist();
+  ed.draft = ed.draft.filter(L => L.lid !== ed.sel);
+  ed.sel = null;
+  edRefresh();
+}
+
+// 在頁面上畫框、移動、縮放
+const ov = $('edOverlay');
+function localPoint(e) {
+  const r = ov.getBoundingClientRect();
+  return { x: Math.min(Math.max(e.clientX - r.left, 0), r.width), y: Math.min(Math.max(e.clientY - r.top, 0), r.height), W: r.width, H: r.height };
+}
+const rectFrom = (a, b) => ({ x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) });
+
+ov.addEventListener('pointerdown', e => {
+  if (e.button !== 0 || !ed.vp) return;
+  document.activeElement?.blur();   // 先套用正在輸入的網址
+  const pt = localPoint(e);
+  const box = e.target.closest('.box'), h = e.target.closest('.h');
+  if (box) {
+    ed.sel = box.dataset.lid;
+    ed.drag = { mode: h ? h.dataset.h : 'move', start: pt, orig: toScreen(edLink(ed.sel).rect), changed: false };
+    edRefresh();
+  } else {
+    ed.drag = { mode: 'new', start: pt };
+  }
+  ov.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+ov.addEventListener('pointermove', e => {
+  const d = ed.drag;
+  if (!d) return;
+  const pt = localPoint(e);
+  if (d.mode === 'new') {
+    const r = rectFrom(d.start, pt);
+    Object.assign($('edTemp').style, { display: 'block', left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+    return;
+  }
+  const dx = pt.x - d.start.x, dy = pt.y - d.start.y, o = d.orig;
+  let r;
+  if (d.mode === 'move') {
+    r = { ...o, x: Math.min(Math.max(o.x + dx, 0), pt.W - o.w), y: Math.min(Math.max(o.y + dy, 0), pt.H - o.h) };
+  } else {
+    // 拖曳的角落移動，對角固定
+    const fixed = { x: d.mode.includes('w') ? o.x + o.w : o.x, y: d.mode.includes('n') ? o.y + o.h : o.y };
+    const moving = { x: (d.mode.includes('w') ? o.x : o.x + o.w) + dx, y: (d.mode.includes('n') ? o.y : o.y + o.h) + dy };
+    moving.x = Math.min(Math.max(moving.x, 0), pt.W);
+    moving.y = Math.min(Math.max(moving.y, 0), pt.H);
+    r = rectFrom(fixed, moving);
+    if (r.w < 6 || r.h < 6) return;
+  }
+  if (!d.changed) { edPushHist(); d.changed = true; }
+  edLink(ed.sel).rect = toPdf(r);
+  drawBoxes();
+});
+ov.addEventListener('pointerup', e => {
+  const d = ed.drag;
+  ed.drag = null;
+  if (!d) return;
+  if (d.mode === 'new') {
+    $('edTemp').style.display = 'none';
+    const r = rectFrom(d.start, localPoint(e));
+    if (r.w >= 6 && r.h >= 6) {
+      edPushHist();
+      const L = { lid: 'n' + (++uid), orig: null, rect: toPdf(r), kind: ed.lastKind, target: null,
+        url: '', view: 'fit', border: { w: 0 }, hl: 'I' };
+      ed.draft.push(L);
+      ed.sel = L.lid;
+    } else {
+      ed.sel = null;
+    }
+  }
+  edRefresh();
+  if (d.mode === 'new' && ed.sel) (edLink(ed.sel).kind === 'url' ? $('edUrl') : $('edTarget'))?.focus();
+});
+
+// 套用編輯結果；有未設定完成的連結時先詢問
+function commitEditor() {
+  const bad = ed.draft.filter(isIncomplete);
+  if (bad.length && !confirm(`有 ${bad.length} 個連結尚未設定完成（沒有選擇目標頁，或網址格式不正確），這些連結不會被儲存。\n\n按「確定」繼續，按「取消」回去修改。`)) {
+    ed.sel = bad[0].lid;
+    edRefresh();
+    return false;
+  }
+  const draft = ed.draft.filter(L => !isIncomplete(L));
+  if (JSON.stringify(draft) !== ed.before) {
+    snapshot();
+    state.pages[ed.idx] = { ...state.pages[ed.idx], links: draft };
+    render();
+  }
+  return true;
+}
+function closeEditor() {
+  ed.task?.cancel();
+  ed.drag = null;
+  $('editDlg').close();
+}
+$('edDone').onclick = () => { if (commitEditor()) closeEditor(); };
+$('edCancel').onclick = () => {
+  if (JSON.stringify(ed.draft) !== ed.before && !confirm('要放棄這一頁的連結修改嗎？')) return;
+  closeEditor();
+};
+$('edPrev').onclick = () => { if (commitEditor()) openEditor(ed.idx - 1); };
+$('edNext').onclick = () => { if (commitEditor()) openEditor(ed.idx + 1); };
+$('editDlg').addEventListener('cancel', e => {
+  e.preventDefault();   // Esc：先取消選取，沒有選取時才等同按「取消」
+  if (ed.sel) { ed.sel = null; edRefresh(); } else $('edCancel').click();
+});
+
+function editorKey(e) {
+  if (e.target.matches('input, select, textarea')) return;
+  const mod = e.metaKey || e.ctrlKey;
+  if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); edUndo(); return; }
+  const L = edLink(ed.sel);
+  if (!L) return;
+  if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); edDeleteSelected(); return; }
+  const step = e.shiftKey ? 10 : 1;
+  const mv = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
+  if (!mv) return;
+  e.preventDefault();
+  const r = toScreen(L.rect), W = ed.vp.width, H = ed.vp.height;
+  edPushHist();
+  L.rect = toPdf({ ...r, x: Math.min(Math.max(r.x + mv[0], 0), W - r.w), y: Math.min(Math.max(r.y + mv[1], 0), H - r.h) });
+  drawBoxes();
+}
+
+let resizeTimer;
+window.addEventListener('resize', () => {
+  if (!$('editDlg').open) return;
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(async () => { await renderEditorPage(); drawBoxes(); }, 150);
+});
+
 // ---------- 匯出 ----------
 async function exportPdf() {
   if (!state.pages.length) return;
@@ -600,10 +1096,10 @@ async function exportPdf() {
       // 還會把目標頁（即使已刪除）整頁偷偷帶進新檔案。匯出後再改指向新檔案的頁面。
       const links = extractLinks(lib);
       for (const L of links.flat()) {
-        if (L.target < 0) continue;
+        L.dict.delete(N('P'));
+        if (L.kind !== 'page') continue;
         L.dict.delete(N('Dest'));
         L.dict.delete(N('A'));
-        L.dict.delete(N('P'));
       }
       srcLinks.set(srcIdx, links);
       const indices = state.pages.filter(p => p.src === srcIdx).map(p => p.page);
@@ -617,29 +1113,65 @@ async function exportPdf() {
     });
 
     // 為每一頁重建連結註解（同一頁的複本會共用註解物件，所以每頁各自複製一份再設定目的地）
-    const expected = new Map();   // 輸出頁 → 預期跳到的頁面清單，供匯出後驗證
+    const expected = new Map();   // 輸出頁 → 預期的連結清單，供匯出後驗證
     outPages.forEach((page, i) => {
       const p = state.pages[i];
-      const pageLinks = srcLinks.get(p.src)[p.page].filter(L => L.target >= 0);
-      if (!pageLinks.length) return;
+      const list = pageLinks(p);
+      const srcL = srcLinks.get(p.src)[p.page];
+      if (!list.length && !srcL.length) return;
       const annots = page.node.lookup(N('Annots'));
-      if (!(annots instanceof PDFArray)) return;
-      const byIdx = new Map(pageLinks.map(L => [L.annot, L]));
+      const linkIdx = new Set(srcL.map(L => L.annot));
       const rebuilt = ctx.obj([]);
-      for (let j = 0; j < annots.size(); j++) {
-        const el = annots.get(j), L = byIdx.get(j);
-        if (!L) { rebuilt.push(el); continue; }
-        const tgt = plan.has(i + ':' + j) ? plan.get(i + ':' + j) : -1;
-        if (tgt < 0) continue;   // 使用者選擇移除
-        const t = state.pages[tgt];
-        // 仍指向原本那一頁就保留原來的捲動位置／縮放，改指向替換頁則顯示整頁
-        const rest = (t.src === p.src && t.page === L.target) ? L.rest : [N('Fit')];
-        const annot = ctx.lookup(el, PDFDict).clone(ctx);
-        annot.set(N('Dest'), ctx.obj([outPages[tgt].ref, ...rest]));
+      // 非連結的註解（表單、註記等）原樣保留
+      if (annots instanceof PDFArray)
+        for (let j = 0; j < annots.size(); j++) if (!linkIdx.has(j)) rebuilt.push(annots.get(j));
+
+      for (const L of list) {
+        const key = i + ':' + L.lid;
+        const src = L.orig != null && annots instanceof PDFArray ? annots.get(L.orig) : null;
+        const annot = src ? ctx.lookup(src, PDFDict).clone(ctx) : ctx.obj({ Type: 'Annot', Subtype: 'Link', F: 4 });
+        let want = null;
+        if (L.kind === 'page') {
+          const tgt = plan.has(key) ? plan.get(key) : -1;
+          if (tgt < 0) continue;   // 使用者選擇移除，或目標尚未設定
+          const t = state.pages[tgt], o = srcL.find(x => x.annot === L.orig);
+          let rest;
+          if (L.view === 'keep' && o?.kind === 'page' && t.src === p.src && t.page === o.target) {
+            rest = o.rest;   // 仍指向原本那一頁：保留原來的捲動位置／縮放
+          } else if (L.view === 'top' && outPages[tgt].getRotation().angle % 360 === 0) {
+            const box = outPages[tgt].getCropBox();
+            rest = [N('XYZ'), PDFLib.PDFNull, PDFNumber.of(box.y + box.height), PDFLib.PDFNull];
+          } else {
+            rest = [N('Fit')];
+          }
+          annot.delete(N('A'));
+          annot.set(N('Dest'), ctx.obj([outPages[tgt].ref, ...rest]));
+          want = { kind: 'page', tgt, rect: L.rect };
+        } else if (L.kind === 'url') {
+          const url = normalizeUrl(L.url);
+          if (!url) continue;
+          annot.delete(N('Dest'));
+          const hex = [...url].map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join('');
+          annot.set(N('A'), ctx.obj({ Type: 'Action', S: 'URI', URI: PDFLib.PDFHexString.of(hex) }));
+          want = { kind: 'url', url, rect: L.rect };
+        }
+        annot.set(N('Rect'), ctx.obj(L.rect));
         annot.set(N('P'), page.ref);
+        if (L.border) {
+          annot.delete(N('BS'));
+          annot.delete(N('AP'));
+          annot.set(N('Border'), ctx.obj([0, 0, L.border.w]));
+          if (L.border.w > 0) {
+            const hex = L.border.color || '#2563eb';
+            annot.set(N('C'), ctx.obj([1, 3, 5].map(k => parseInt(hex.slice(k, k + 2), 16) / 255)));
+          }
+        }
+        if (L.hl) annot.set(N('H'), N(L.hl));
         rebuilt.push(ctx.register(annot));
-        if (!expected.has(i)) expected.set(i, []);
-        expected.get(i).push(tgt);
+        if (want) {
+          if (!expected.has(i)) expected.set(i, []);
+          expected.get(i).push(want);
+        }
       }
       page.node.set(N('Annots'), rebuilt);
     });
@@ -665,7 +1197,7 @@ async function exportPdf() {
       setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     }
     $('status').textContent = `已匯出「${handle ? handle.name : name}」，共 ${state.pages.length} 頁`
-      + (check.checked ? `，${check.checked} 個內部連結已逐一驗證可正確跳轉` : '')
+      + (check.checked ? `，${check.checked} 個連結已逐一驗證範圍與目標皆正確` : '')
       + (check.failures.length ? `，${check.failures.length} 個連結有問題` : '');
   } catch (e) {
     console.error(e);
@@ -699,6 +1231,7 @@ grid.addEventListener('click', e => {
   if (act === 'del') return deletePages(id);
   if (act === 'dup') return duplicatePages(id);
   if (act === 'rot') return rotatePages(90, id);
+  if (act === 'links') return openEditor(state.pages.findIndex(p => p.id === id));
 
   const ids = state.pages.map(p => p.id);
   if (e.shiftKey && state.anchor != null && ids.includes(state.anchor)) {
@@ -712,12 +1245,18 @@ grid.addEventListener('click', e => {
     state.selected = new Set([id]);
     state.anchor = id;
   }
-  render();
+  renderChrome();
+});
+
+grid.addEventListener('dblclick', e => {
+  const card = e.target.closest('.card');
+  if (!card || e.target.closest('button')) return;
+  openEditor(state.pages.findIndex(p => p.id === Number(card.dataset.id)));
 });
 
 // 點空白處取消選取
 $('main').addEventListener('click', e => {
-  if (!e.target.closest('.card') && state.selected.size) { state.selected.clear(); render(); }
+  if (!e.target.closest('.card') && state.selected.size) { state.selected.clear(); renderChrome(); }
 });
 
 // 拖曳排序：若拖曳的頁面在選取範圍內，選取的頁面會一起移動
@@ -763,13 +1302,14 @@ window.addEventListener('drop', e => {
 
 // 鍵盤快捷鍵
 document.addEventListener('keydown', e => {
-  if (e.target.matches('input')) return;
+  if ($('editDlg').open) return editorKey(e);
+  if ($('linkDlg').open || e.target.matches('input, select, textarea')) return;
   const mod = e.metaKey || e.ctrlKey;
   if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected.size) { e.preventDefault(); deletePages(); }
   else if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicatePages(); }
   else if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
   else if (mod && e.key.toLowerCase() === 'a' && state.pages.length) { e.preventDefault(); selectAll(); }
-  else if (e.key === 'Escape') { state.selected.clear(); render(); }
+  else if (e.key === 'Escape') { state.selected.clear(); renderChrome(); }
 });
 
 window.addEventListener('beforeunload', e => { if (state.pages.length) e.preventDefault(); });
