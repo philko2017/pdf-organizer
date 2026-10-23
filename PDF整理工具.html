@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF 整理工具</title>
+<!-- 函式庫皆放在 lib 資料夾，離線即可使用 -->
+<script src="lib/pdf.min.js"></script>
+<!-- 直接以 file:// 開啟時瀏覽器不允許 Web Worker，先載入 worker 讓 pdf.js 在主執行緒運作 -->
+<script src="lib/pdf.worker.min.js"></script>
+<script src="lib/pdf-lib.min.js"></script>
+<script src="lib/Sortable.min.js"></script>
+<style>
+  :root {
+    --bg: #f4f5f7; --panel: #ffffff; --text: #1f2328; --muted: #6b7280;
+    --border: #d9dce1; --accent: #2563eb; --accent-soft: #dbe7ff;
+    --danger: #dc2626; --shadow: 0 1px 3px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17191c; --panel: #22252a; --text: #e6e8eb; --muted: #9aa1ab;
+      --border: #363a41; --accent: #5b8cff; --accent-soft: #263553;
+      --danger: #f87171; --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif; }
+  header { position: sticky; top: 0; z-index: 10; background: var(--panel); border-bottom: 1px solid var(--border);
+    padding: 10px 16px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  h1 { font-size: 16px; margin: 0 12px 0 0; white-space: nowrap; }
+  button, .btn { font: inherit; border: 1px solid var(--border); background: var(--panel); color: var(--text);
+    padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+  button:hover:not(:disabled), .btn:hover { border-color: var(--accent); }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger:not(:disabled) { color: var(--danger); }
+  .sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+  .spacer { flex: 1; }
+  input[type=text] { font: inherit; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg); color: var(--text); width: 180px; }
+  #status { color: var(--muted); font-size: 13px; padding: 6px 16px; }
+  #sources { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 16px; }
+  .src-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 8px;
+    border: 1px solid var(--border); border-radius: 999px; background: var(--panel); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  main { padding: 12px 16px 80px; min-height: calc(100vh - 120px); }
+  #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; }
+  .card { position: relative; background: var(--panel); border: 2px solid transparent; border-radius: 8px;
+    padding: 8px; box-shadow: var(--shadow); cursor: grab; user-select: none; }
+  .card.selected { border-color: var(--accent); background: var(--accent-soft); }
+  .card.ghost { opacity: .35; }
+  .thumb { width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .thumb img { max-width: 100%; max-height: 100%; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.12);
+    transition: transform .15s; pointer-events: none; }
+  .thumb img:not([src]) { width: 70%; height: 90%; }
+  .meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; }
+  .num { font-weight: 600; }
+  .from { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tools { position: absolute; top: 6px; right: 6px; display: none; gap: 4px; }
+  .card:hover .tools { display: flex; }
+  .tools button { padding: 2px 6px; font-size: 13px; line-height: 1.3; box-shadow: var(--shadow); }
+  #empty { border: 2px dashed var(--border); border-radius: 12px; padding: 60px 20px; text-align: center; color: var(--muted); }
+  #empty p { margin: 6px 0; }
+  body.dragover main { outline: 3px dashed var(--accent); outline-offset: -8px; }
+  .hint { font-size: 12px; color: var(--muted); padding: 0 16px 8px; }
+  kbd { font: 11px ui-monospace, monospace; border: 1px solid var(--border); border-radius: 3px; padding: 0 4px; }
+  #busy { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center;
+    justify-content: center; z-index: 50; color: #fff; font-size: 16px; }
+  #busy.on { display: flex; }
+  .badges { position: absolute; top: 6px; left: 6px; display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .badge { font-size: 11px; line-height: 1.4; padding: 0 6px; border-radius: 999px; background: var(--panel);
+    border: 1px solid var(--border); box-shadow: var(--shadow); white-space: nowrap; }
+  .badge.warn { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+  .badge.bad { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+  #status .warn { color: #b45309; font-weight: 600; }
+  dialog { border: 1px solid var(--border); border-radius: 10px; background: var(--panel); color: var(--text);
+    padding: 0; width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 64px); }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  .dlg-head { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .dlg-head h2 { font-size: 16px; margin: 0 0 4px; }
+  .dlg-head p { margin: 0; color: var(--muted); font-size: 13px; }
+  .dlg-body { padding: 8px 18px; overflow: auto; max-height: calc(100vh - 220px); }
+  .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+  .link-row { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .link-row:last-child { border-bottom: 0; }
+  .link-row .desc { flex: 1; min-width: 0; font-size: 13px; }
+  .link-row .desc b { display: block; margin-bottom: 2px; }
+  .link-row select { font: inherit; font-size: 13px; padding: 4px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text); max-width: 100%; margin-top: 6px; }
+  .link-row .prev { width: 64px; height: 64px; flex: none; display: flex; align-items: center; justify-content: center; }
+  .link-row .prev img { max-width: 100%; max-height: 100%; box-shadow: 0 0 0 1px rgba(0,0,0,.15); background: #fff; }
+  .tag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; margin-right: 4px; }
+  .tag.bad { background: #fee2e2; color: #991b1b; } .tag.warn { background: #fef3c7; color: #92400e; }
+  @media (max-width: 600px) { #grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); } input[type=text] { width: 130px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📄 PDF 整理工具</h1>
+  <label class="btn">＋ 加入 PDF<input id="fileInput" type="file" accept="application/pdf,.pdf" multiple hidden></label>
+  <span class="sep"></span>
+  <button id="btnAll">全選</button>
+  <button id="btnDup" disabled>複製頁面</button>
+  <button id="btnRotL" disabled>↺ 左轉</button>
+  <button id="btnRotR" disabled>↻ 右轉</button>
+  <button id="btnDel" class="danger" disabled>刪除頁面</button>
+  <button id="btnUndo" disabled>復原</button>
+  <button id="btnClear" disabled>清空</button>
+  <span class="spacer"></span>
+  <input id="outName" type="text" value="整理後.pdf" title="匯出檔名">
+  <button id="btnExport" class="primary" disabled>匯出 PDF</button>
+</header>
+<div id="status">尚未載入檔案</div>
+<div id="sources"></div>
+<div class="hint">拖曳頁面縮圖可調整順序　·　🔗＝頁面上有內部連結，◎＝被其他頁連結，⚠＝連結目標已刪除或重複　·點選＝單選，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>＋點選＝多選，<kbd>Shift</kbd>＋點選＝範圍選取　·　<kbd>Delete</kbd> 刪除，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>D</kbd> 複製，<kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> 復原</div>
+<main id="main">
+  <div id="empty">
+    <p style="font-size:40px">📥</p>
+    <p><strong>把 PDF 檔拖曳到這裡</strong>，或點左上角「加入 PDF」</p>
+    <p>可一次加入多個檔案，所有頁面會依序排在一起（即合併）</p>
+    <p style="font-size:12px">檔案只在你的電腦上處理，不會上傳到任何伺服器</p>
+  </div>
+  <div id="grid"></div>
+</main>
+<div id="busy">處理中…</div>
+<dialog id="linkDlg">
+  <div class="dlg-head">
+    <h2>🔗 請確認內部超連結</h2>
+    <p id="linkDlgSummary"></p>
+  </div>
+  <div class="dlg-body" id="linkDlgBody"></div>
+  <div class="dlg-foot">
+    <button id="linkDlgCancel">返回修改</button>
+    <button id="linkDlgOk" class="primary">確認並匯出</button>
+  </div>
+</dialog>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
+
+const COLORS = ['#2563eb', '#16a34a', '#ea580c', '#9333ea', '#db2777', '#0891b2', '#ca8a04', '#64748b'];
+const state = { sources: [], pages: [], selected: new Set(), anchor: null };
+const history = [];
+const thumbs = new Map();      // "src:page" -> dataURL
+const pendingThumbs = new Map();
+let uid = 0;
+
+const $ = id => document.getElementById(id);
+const grid = $('grid');
+
+// ---------- 歷史紀錄 ----------
+function snapshot() {
+  history.push(JSON.stringify(state.pages));
+  if (history.length > 100) history.shift();
+}
+function undo() {
+  if (!history.length) return;
+  state.pages = JSON.parse(history.pop());
+  state.selected.clear();
+  render();
+}
+
+// ---------- 載入檔案 ----------
+async function addFiles(fileList) {
+  const files = [...fileList].filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+  if (!files.length) return;
+  setBusy(true);
+  snapshot();
+  const errors = [];
+  for (const f of files) {
+    try {
+      const bytes = new Uint8Array(await f.arrayBuffer());
+      const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+      // 讀取每頁的內部超連結（只保留「第幾個註解 → 指向第幾頁」，匯出時再重新解析）
+      let links = [];
+      try {
+        const lib = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true, updateMetadata: false });
+        links = extractLinks(lib).map(list => list.map(({ annot, target }) => ({ annot, target })));
+      } catch (e) { console.warn('無法讀取連結', f.name, e); }
+      const srcIdx = state.sources.length;
+      state.sources.push({ name: f.name, bytes, doc, links, color: COLORS[srcIdx % COLORS.length] });
+      for (let i = 0; i < doc.numPages; i++) {
+        state.pages.push({ id: ++uid, src: srcIdx, page: i, rot: 0 });
+      }
+    } catch (e) {
+      console.error(e);
+      errors.push(`${f.name}（${e.name === 'PasswordException' ? '有密碼保護' : '無法讀取'}）`);
+    }
+  }
+  setBusy(false);
+  render();
+  if (errors.length) alert('以下檔案無法載入：\n' + errors.join('\n'));
+}
+
+// ---------- 內部超連結 ----------
+const { PDFName, PDFArray, PDFDict, PDFRef, PDFNumber } = PDFLib;
+const N = s => PDFName.of(s);
+const textOf = o => (o && typeof o.decodeText === 'function') ? o.decodeText() : String(o);
+
+// 具名目的地：catalog /Dests 字典與 /Names /Dests 名稱樹
+function buildNamedDests(doc) {
+  const ctx = doc.context, map = new Map();
+  const toArr = v => {
+    v = ctx.lookup(v);
+    if (v instanceof PDFDict) v = ctx.lookup(v.get(N('D')));
+    return v instanceof PDFArray ? v : null;
+  };
+  try {
+    const dests = doc.catalog.lookup(N('Dests'));
+    if (dests instanceof PDFDict) for (const [k, v] of dests.entries()) map.set(textOf(k), toArr(v));
+  } catch (e) {}
+  const walk = (node, depth) => {
+    if (!(node instanceof PDFDict) || depth > 32) return;
+    const names = node.lookup(N('Names'));
+    if (names instanceof PDFArray)
+      for (let i = 0; i + 1 < names.size(); i += 2) map.set(textOf(ctx.lookup(names.get(i))), toArr(names.get(i + 1)));
+    const kids = node.lookup(N('Kids'));
+    if (kids instanceof PDFArray) for (let i = 0; i < kids.size(); i++) walk(kids.lookup(i), depth + 1);
+  };
+  try {
+    const names = doc.catalog.lookup(N('Names'));
+    if (names instanceof PDFDict) walk(names.lookup(N('Dests')), 0);
+  } catch (e) {}
+  return map;
+}
+
+// 回傳每頁的內部連結：[{ annot: Annots 中的索引, target: 目標頁索引(-1=無法解析), rest: 目的地參數, dict }]
+function extractLinks(doc) {
+  const ctx = doc.context;
+  const pages = doc.getPages();
+  const refIndex = new Map(pages.map((p, i) => [p.ref.toString(), i]));
+  let named = null;
+  return pages.map(page => {
+    const out = [];
+    let annots;
+    try { annots = page.node.lookup(N('Annots')); } catch (e) { return out; }
+    if (!(annots instanceof PDFArray)) return out;
+    for (let j = 0; j < annots.size(); j++) {
+      try {
+        const annot = annots.lookup(j);
+        if (!(annot instanceof PDFDict) || textOf(annot.get(N('Subtype'))) !== 'Link') continue;
+        let dest = annot.get(N('Dest'));
+        if (!dest) {
+          const action = annot.lookup(N('A'));
+          if (!(action instanceof PDFDict) || textOf(action.get(N('S'))) !== 'GoTo') continue;
+          dest = action.get(N('D'));
+        }
+        dest = ctx.lookup(dest);
+        if (!(dest instanceof PDFArray)) {
+          named = named || buildNamedDests(doc);
+          dest = named.get(textOf(dest)) || null;
+        }
+        if (!dest) { out.push({ annot: j, target: -1, dict: annot }); continue; }
+        const first = dest.get(0);
+        let target = first instanceof PDFRef ? refIndex.get(first.toString())
+                   : first instanceof PDFNumber ? first.asNumber() : undefined;
+        if (target == null || target < 0 || target >= pages.length) target = -1;
+        const rest = [];
+        for (let k = 1; k < dest.size(); k++) rest.push(dest.get(k));
+        out.push({ annot: j, target, rest, dict: annot });
+      } catch (e) { console.warn('略過無法解析的連結', e); }
+    }
+    return out;
+  });
+}
+
+// 依目前頁面排列，檢查每個連結的目標：ok=唯一一頁、dup=目標頁有多個複本、missing=目標頁已刪除
+function analyzeLinks() {
+  const pos = new Map();
+  state.pages.forEach((p, i) => {
+    const k = p.src + ':' + p.page;
+    if (!pos.has(k)) pos.set(k, []);
+    pos.get(k).push(i);
+  });
+  const items = [];
+  state.pages.forEach((p, i) => {
+    for (const L of state.sources[p.src].links?.[p.page] || []) {
+      if (L.target < 0) continue;
+      const hits = pos.get(p.src + ':' + L.target) || [];
+      items.push({ key: i + ':' + L.annot, out: i, src: p.src, target: L.target, hits,
+        status: hits.length === 1 ? 'ok' : hits.length ? 'dup' : 'missing' });
+    }
+  });
+  return items;
+}
+
+const pageLabel = i => {
+  const p = state.pages[i];
+  return `第 ${i + 1} 頁（${state.sources[p.src].name} p${p.page + 1}）`;
+};
+
+// 目標頁被刪除時，猜測替代頁：原本前一頁之後的位置若放的是其他頁，視為替換頁
+function suggestTarget(item) {
+  for (let t = item.target - 1; t >= 0; t--) {
+    const idx = state.pages.findIndex(p => p.src === item.src && p.page === t);
+    if (idx < 0) continue;
+    const next = state.pages[idx + 1];
+    if (next && !(next.src === item.src && next.page > item.target)) return idx + 1;
+    return -1;
+  }
+  return -1;
+}
+
+// 顯示確認視窗，回傳 Map(key → 目標輸出頁索引，-1 表示移除連結)，取消則回傳 null
+function confirmLinks(items) {
+  const problems = items.filter(x => x.status !== 'ok');
+  const okCount = items.length - problems.length;
+  $('linkDlgSummary').textContent =
+    `共 ${items.length} 個內部連結：${okCount} 個會自動對應到新頁碼；下列 ${problems.length} 個需要你確認目標頁。`;
+  const pageOpts = state.pages.map((_, i) => `<option value="${i}">${escapeHtml(pageLabel(i))}</option>`).join('');
+  $('linkDlgBody').replaceChildren(...problems.map(it => {
+    const row = document.createElement('div');
+    row.className = 'link-row';
+    const srcName = escapeHtml(state.sources[it.src].name);
+    const why = it.status === 'missing'
+      ? `<span class="tag bad">目標頁已刪除</span>原本指向 ${srcName} p${it.target + 1}，該頁已不在文件中。若已用其他頁替換，請選擇替換後的頁面。`
+      : `<span class="tag warn">目標頁有 ${it.hits.length} 個複本</span>原本指向 ${srcName} p${it.target + 1}，請選擇要跳到哪一個。`;
+    const def = it.status === 'dup' ? it.hits[0] : suggestTarget(it);
+    row.innerHTML = `
+      <div class="desc"><b>${escapeHtml(pageLabel(it.out))} 上的連結</b>${why}<br>
+        <select data-key="${it.key}"><option value="-1">✕ 移除此連結</option>${pageOpts}</select></div>
+      <div class="prev"><img alt=""></div>`;
+    const sel = row.querySelector('select');
+    [...sel.options].forEach(o => {
+      const v = Number(o.value);
+      if (v === def && def >= 0) o.textContent += '（建議）';
+      if (it.hits.includes(v)) o.textContent += '（原目標頁）';
+    });
+    sel.value = String(def);
+    const img = row.querySelector('img');
+    const preview = () => {
+      const v = Number(sel.value);
+      img.removeAttribute('src');
+      if (v < 0) return;
+      const p = state.pages[v];
+      getThumb(p.src, p.page).then(url => { if (Number(sel.value) === v && url) img.src = url; });
+      img.style.transform = `rotate(${p.rot}deg)`;
+    };
+    sel.addEventListener('change', preview);
+    preview();
+    return row;
+  }));
+
+  const dlg = $('linkDlg');
+  return new Promise(resolve => {
+    const done = ok => {
+      dlg.close();
+      $('linkDlgOk').onclick = $('linkDlgCancel').onclick = dlg.oncancel = null;
+      if (!ok) return resolve(null);
+      const decisions = new Map();
+      dlg.querySelectorAll('select[data-key]').forEach(s => decisions.set(s.dataset.key, Number(s.value)));
+      resolve(decisions);
+    };
+    $('linkDlgOk').onclick = () => done(true);
+    $('linkDlgCancel').onclick = () => done(false);
+    dlg.oncancel = e => { e.preventDefault(); done(false); };
+    dlg.showModal();
+  });
+}
+
+// 以 pdf.js（與寫入用的 pdf-lib 不同的解析器）重新開啟匯出檔，確認每個連結都跳到預期頁面
+async function verifyLinks(bytes, expected) {
+  const doc = await pdfjsLib.getDocument({ data: bytes.slice() }).promise;
+  const failures = [];
+  let checked = 0;
+  try {
+    for (const [i, targets] of expected) {
+      const page = await doc.getPage(i + 1);
+      const actual = [];
+      for (const a of await page.getAnnotations()) {
+        if (a.subtype !== 'Link' || a.dest == null) continue;
+        try {
+          const dest = typeof a.dest === 'string' ? await doc.getDestination(a.dest) : a.dest;
+          const ref = dest?.[0];
+          actual.push(typeof ref === 'number' ? ref : await doc.getPageIndex(ref));
+        } catch (e) { actual.push(-1); }
+      }
+      for (const t of targets) {
+        const k = actual.indexOf(t);
+        if (k >= 0) { actual.splice(k, 1); checked++; }
+        else failures.push(`第 ${i + 1} 頁的連結應跳到第 ${t + 1} 頁，但沒有正確寫入`);
+      }
+    }
+  } finally {
+    doc.destroy();
+  }
+  return { checked, failures };
+}
+
+// ---------- 縮圖 ----------
+let thumbQueue = Promise.resolve();
+function getThumb(src, page) {
+  const key = src + ':' + page;
+  if (thumbs.has(key)) return Promise.resolve(thumbs.get(key));
+  if (pendingThumbs.has(key)) return pendingThumbs.get(key);
+  const p = thumbQueue = thumbQueue.then(async () => {
+    const pg = await state.sources[src].doc.getPage(page + 1);
+    const vp1 = pg.getViewport({ scale: 1 });
+    const scale = 320 / Math.max(vp1.width, vp1.height);
+    const vp = pg.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(vp.width);
+    canvas.height = Math.round(vp.height);
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await pg.render({ canvasContext: ctx, viewport: vp }).promise;
+    const url = canvas.toDataURL('image/jpeg', 0.82);
+    thumbs.set(key, url);
+    pendingThumbs.delete(key);
+    return url;
+  }).catch(e => { console.error(e); pendingThumbs.delete(key); return ''; });
+  pendingThumbs.set(key, p);
+  return p;
+}
+
+const observer = new IntersectionObserver(entries => {
+  for (const en of entries) {
+    if (!en.isIntersecting) continue;
+    const img = en.target;
+    observer.unobserve(img);
+    const key = img.dataset.key;
+    const [src, page] = key.split(':').map(Number);
+    getThumb(src, page).then(url => {
+      if (!url) return;
+      document.querySelectorAll(`img[data-key="${key}"]`).forEach(el => { el.src = url; });
+    });
+  }
+}, { rootMargin: '400px' });
+
+// ---------- 畫面 ----------
+function render() {
+  const { pages, sources, selected } = state;
+  $('empty').style.display = pages.length ? 'none' : '';
+  // 連結狀態：每頁上的連結數與問題、每頁被幾個連結指向
+  const links = analyzeLinks();
+  const onPage = new Map(), targeted = new Map();
+  for (const it of links) {
+    const e = onPage.get(it.out) || { n: 0, missing: 0, dup: 0 };
+    e.n++; if (it.status !== 'ok') e[it.status]++;
+    onPage.set(it.out, e);
+    for (const h of it.hits) targeted.set(h, (targeted.get(h) || 0) + 1);
+  }
+  const nProblems = links.filter(x => x.status !== 'ok').length;
+
+  grid.replaceChildren(...pages.map((p, i) => {
+    const s = sources[p.src];
+    const key = p.src + ':' + p.page;
+    const card = document.createElement('div');
+    card.className = 'card' + (selected.has(p.id) ? ' selected' : '');
+    card.dataset.id = p.id;
+    card.innerHTML = `
+      <div class="thumb"><img data-key="${key}" alt="" style="transform: rotate(${p.rot}deg)"></div>
+      <div class="meta"><span class="dot" style="background:${s.color}"></span>
+        <span class="num">${i + 1}</span>
+        <span class="from" title="${escapeHtml(s.name)} 第 ${p.page + 1} 頁">${escapeHtml(s.name)} · p${p.page + 1}</span></div>
+      <div class="tools">
+        <button data-act="rot" title="右轉 90°">↻</button>
+        <button data-act="dup" title="複製此頁">⧉</button>
+        <button data-act="del" title="刪除此頁">✕</button>
+      </div>`;
+    const lk = onPage.get(i), tg = targeted.get(i);
+    if (lk || tg) {
+      const b = document.createElement('div');
+      b.className = 'badges';
+      if (lk) b.innerHTML += `<span class="badge" title="此頁有 ${lk.n} 個內部連結">🔗 ${lk.n}</span>`;
+      if (lk?.missing) b.innerHTML += `<span class="badge bad" title="有 ${lk.missing} 個連結的目標頁已被刪除">⚠ ${lk.missing} 個目標已刪除</span>`;
+      if (lk?.dup) b.innerHTML += `<span class="badge warn" title="有 ${lk.dup} 個連結的目標頁有多個複本">⚠ ${lk.dup} 個目標重複</span>`;
+      if (tg) b.innerHTML += `<span class="badge" title="有 ${tg} 個連結指向此頁">◎ ${tg}</span>`;
+      card.appendChild(b);
+    }
+    const img = card.querySelector('img');
+    if (thumbs.has(key)) img.src = thumbs.get(key);
+    else observer.observe(img);
+    return card;
+  }));
+
+  const usedSrc = new Set(pages.map(p => p.src));
+  $('sources').replaceChildren(...sources.map((s, i) => {
+    if (!usedSrc.has(i)) return document.createTextNode('');
+    const n = pages.filter(p => p.src === i).length;
+    const chip = document.createElement('span');
+    chip.className = 'src-chip';
+    chip.innerHTML = `<span class="dot" style="background:${s.color}"></span>${escapeHtml(s.name)}（${n} 頁）`;
+    return chip;
+  }));
+
+  const nSel = selected.size;
+  $('status').textContent = pages.length
+    ? `共 ${pages.length} 頁，來自 ${usedSrc.size} 個檔案` + (nSel ? `　·　已選取 ${nSel} 頁` : '')
+      + (links.length ? `　·　${links.length} 個內部連結` : '')
+    : '尚未載入檔案';
+  if (nProblems) {
+    const w = document.createElement('span');
+    w.className = 'warn';
+    w.textContent = `　⚠ ${nProblems} 個連結的目標頁已刪除或重複，匯出時會請你確認`;
+    $('status').appendChild(w);
+  }
+  ['btnDup', 'btnDel', 'btnRotL', 'btnRotR'].forEach(id => $(id).disabled = !nSel);
+  $('btnExport').disabled = !pages.length;
+  $('btnClear').disabled = !pages.length;
+  $('btnAll').disabled = !pages.length;
+  $('btnUndo').disabled = !history.length;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---------- 操作 ----------
+function targetIds(id) { return id != null ? new Set([id]) : new Set(state.selected); }
+
+function deletePages(id) {
+  const ids = targetIds(id);
+  if (!ids.size) return;
+  snapshot();
+  state.pages = state.pages.filter(p => !ids.has(p.id));
+  ids.forEach(i => state.selected.delete(i));
+  render();
+}
+
+function duplicatePages(id) {
+  const ids = targetIds(id);
+  if (!ids.size) return;
+  snapshot();
+  // 每個被選取的頁面，在其正後方插入一份複本
+  const out = [], newSel = new Set();
+  for (const p of state.pages) {
+    out.push(p);
+    if (ids.has(p.id)) {
+      const copy = { ...p, id: ++uid };
+      out.push(copy);
+      newSel.add(copy.id);
+    }
+  }
+  state.pages = out;
+  state.selected = newSel;
+  render();
+}
+
+function rotatePages(deg, id) {
+  const ids = targetIds(id);
+  if (!ids.size) return;
+  snapshot();
+  state.pages = state.pages.map(p => ids.has(p.id) ? { ...p, rot: (p.rot + deg + 360) % 360 } : p);
+  render();
+}
+
+function clearAll() {
+  if (!confirm('確定要清空所有頁面？')) return;
+  snapshot();
+  state.pages = [];
+  state.selected.clear();
+  render();
+}
+
+function selectAll() {
+  state.selected = new Set(state.pages.map(p => p.id));
+  render();
+}
+
+// ---------- 匯出 ----------
+async function exportPdf() {
+  if (!state.pages.length) return;
+  let name = $('outName').value.trim() || '整理後.pdf';
+  if (!/\.pdf$/i.test(name)) name += '.pdf';
+
+  // 連結目標頁被刪除或重複時，先請使用者確認
+  const links = analyzeLinks();
+  const plan = new Map();   // "輸出頁:註解索引" → 目標輸出頁（-1 = 移除）
+  for (const it of links) if (it.status === 'ok') plan.set(it.key, it.hits[0]);
+  if (links.some(it => it.status !== 'ok')) {
+    const decisions = await confirmLinks(links);
+    if (!decisions) return;
+    decisions.forEach((v, k) => plan.set(k, v));
+  }
+
+  // 詢問存檔位置（支援的瀏覽器：Chrome / Edge），必須在使用者點擊後立即呼叫
+  let handle = null;
+  if (window.showSaveFilePicker) {
+    try {
+      handle = await showSaveFilePicker({ suggestedName: name, types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }] });
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      handle = null;
+    }
+  }
+
+  setBusy(true, '正在產生 PDF…');
+  try {
+    const { PDFDocument, degrees } = PDFLib;
+    const out = await PDFDocument.create();
+    const ctx = out.context;
+    // 依來源檔分組，一次複製所需頁面（重複頁面會得到各自獨立的複本）
+    const queues = new Map(), srcLinks = new Map();
+    for (const srcIdx of new Set(state.pages.map(p => p.src))) {
+      const lib = await PDFDocument.load(state.sources[srcIdx].bytes, { ignoreEncryption: true });
+      // 先拿掉內部連結原本的目的地：它指向來源檔的頁面物件，直接複製會讓連結失效，
+      // 還會把目標頁（即使已刪除）整頁偷偷帶進新檔案。匯出後再改指向新檔案的頁面。
+      const links = extractLinks(lib);
+      for (const L of links.flat()) {
+        if (L.target < 0) continue;
+        L.dict.delete(N('Dest'));
+        L.dict.delete(N('A'));
+        L.dict.delete(N('P'));
+      }
+      srcLinks.set(srcIdx, links);
+      const indices = state.pages.filter(p => p.src === srcIdx).map(p => p.page);
+      queues.set(srcIdx, await out.copyPages(lib, indices));
+    }
+    const outPages = state.pages.map(p => {
+      const page = queues.get(p.src).shift();
+      if (p.rot) page.setRotation(degrees((page.getRotation().angle + p.rot) % 360));
+      out.addPage(page);
+      return page;
+    });
+
+    // 為每一頁重建連結註解（同一頁的複本會共用註解物件，所以每頁各自複製一份再設定目的地）
+    const expected = new Map();   // 輸出頁 → 預期跳到的頁面清單，供匯出後驗證
+    outPages.forEach((page, i) => {
+      const p = state.pages[i];
+      const pageLinks = srcLinks.get(p.src)[p.page].filter(L => L.target >= 0);
+      if (!pageLinks.length) return;
+      const annots = page.node.lookup(N('Annots'));
+      if (!(annots instanceof PDFArray)) return;
+      const byIdx = new Map(pageLinks.map(L => [L.annot, L]));
+      const rebuilt = ctx.obj([]);
+      for (let j = 0; j < annots.size(); j++) {
+        const el = annots.get(j), L = byIdx.get(j);
+        if (!L) { rebuilt.push(el); continue; }
+        const tgt = plan.has(i + ':' + j) ? plan.get(i + ':' + j) : -1;
+        if (tgt < 0) continue;   // 使用者選擇移除
+        const t = state.pages[tgt];
+        // 仍指向原本那一頁就保留原來的捲動位置／縮放，改指向替換頁則顯示整頁
+        const rest = (t.src === p.src && t.page === L.target) ? L.rest : [N('Fit')];
+        const annot = ctx.lookup(el, PDFDict).clone(ctx);
+        annot.set(N('Dest'), ctx.obj([outPages[tgt].ref, ...rest]));
+        annot.set(N('P'), page.ref);
+        rebuilt.push(ctx.register(annot));
+        if (!expected.has(i)) expected.set(i, []);
+        expected.get(i).push(tgt);
+      }
+      page.node.set(N('Annots'), rebuilt);
+    });
+
+    const bytes = await out.save();
+    const check = expected.size ? await verifyLinks(bytes, expected) : { checked: 0, failures: [] };
+    if (check.failures.length) {
+      alert('⚠ 連結檢查發現問題，檔案仍會儲存，請檢查：\n' + check.failures.join('\n'));
+    }
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+
+    if (handle) {
+      const w = await handle.createWritable();
+      await w.write(blob);
+      await w.close();
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    }
+    $('status').textContent = `已匯出「${handle ? handle.name : name}」，共 ${state.pages.length} 頁`
+      + (check.checked ? `，${check.checked} 個內部連結已逐一驗證可正確跳轉` : '')
+      + (check.failures.length ? `，${check.failures.length} 個連結有問題` : '');
+  } catch (e) {
+    console.error(e);
+    alert('匯出失敗：' + e.message);
+  } finally {
+    setBusy(false);
+  }
+}
+
+function setBusy(on, msg = '處理中…') {
+  $('busy').textContent = msg;
+  $('busy').classList.toggle('on', on);
+}
+
+// ---------- 事件 ----------
+$('fileInput').addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+$('btnAll').onclick = selectAll;
+$('btnDup').onclick = () => duplicatePages();
+$('btnDel').onclick = () => deletePages();
+$('btnRotL').onclick = () => rotatePages(-90);
+$('btnRotR').onclick = () => rotatePages(90);
+$('btnUndo').onclick = undo;
+$('btnClear').onclick = clearAll;
+$('btnExport').onclick = exportPdf;
+
+grid.addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (!card) return;
+  const id = Number(card.dataset.id);
+  const act = e.target.closest('button')?.dataset.act;
+  if (act === 'del') return deletePages(id);
+  if (act === 'dup') return duplicatePages(id);
+  if (act === 'rot') return rotatePages(90, id);
+
+  const ids = state.pages.map(p => p.id);
+  if (e.shiftKey && state.anchor != null && ids.includes(state.anchor)) {
+    const [a, b] = [ids.indexOf(state.anchor), ids.indexOf(id)].sort((x, y) => x - y);
+    if (!(e.metaKey || e.ctrlKey)) state.selected.clear();
+    ids.slice(a, b + 1).forEach(i => state.selected.add(i));
+  } else if (e.metaKey || e.ctrlKey) {
+    state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
+    state.anchor = id;
+  } else {
+    state.selected = new Set([id]);
+    state.anchor = id;
+  }
+  render();
+});
+
+// 點空白處取消選取
+$('main').addEventListener('click', e => {
+  if (!e.target.closest('.card') && state.selected.size) { state.selected.clear(); render(); }
+});
+
+// 拖曳排序：若拖曳的頁面在選取範圍內，選取的頁面會一起移動
+Sortable.create(grid, {
+  animation: 150,
+  ghostClass: 'ghost',
+  onEnd(e) {
+    if (e.oldIndex === e.newIndex) return;
+    snapshot();
+    const moved = state.pages[e.oldIndex];
+    const group = state.selected.has(moved.id) && state.selected.size > 1
+      ? state.pages.filter(p => state.selected.has(p.id))
+      : [moved];
+    const groupIds = new Set(group.map(p => p.id));
+    // 以 DOM 中拖放後的鄰居決定插入位置
+    const cards = [...grid.children];
+    let after = null;
+    for (let i = e.newIndex - 1; i >= 0; i--) {
+      const pid = Number(cards[i].dataset.id);
+      if (!groupIds.has(pid)) { after = pid; break; }
+    }
+    const rest = state.pages.filter(p => !groupIds.has(p.id));
+    const at = after == null ? 0 : rest.findIndex(p => p.id === after) + 1;
+    rest.splice(at, 0, ...group);
+    state.pages = rest;
+    render();
+  }
+});
+
+// 檔案拖入
+let dragDepth = 0;
+const isFileDrag = e => [...(e.dataTransfer?.types || [])].includes('Files');
+window.addEventListener('dragenter', e => { if (isFileDrag(e)) { dragDepth++; document.body.classList.add('dragover'); } });
+window.addEventListener('dragleave', e => { if (isFileDrag(e) && --dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragover'); } });
+window.addEventListener('dragover', e => { if (isFileDrag(e)) e.preventDefault(); });
+window.addEventListener('drop', e => {
+  if (!isFileDrag(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  document.body.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+
+// 鍵盤快捷鍵
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input')) return;
+  const mod = e.metaKey || e.ctrlKey;
+  if ((e.key === 'Delete' || e.key === 'Backspace') && state.selected.size) { e.preventDefault(); deletePages(); }
+  else if (mod && e.key.toLowerCase() === 'd') { e.preventDefault(); duplicatePages(); }
+  else if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+  else if (mod && e.key.toLowerCase() === 'a' && state.pages.length) { e.preventDefault(); selectAll(); }
+  else if (e.key === 'Escape') { state.selected.clear(); render(); }
+});
+
+window.addEventListener('beforeunload', e => { if (state.pages.length) e.preventDefault(); });
+
+render();
+</script>
+</body>
+</html>
